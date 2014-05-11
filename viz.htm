@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='utf-8'>
+<title>政治獻金視覺化</title>
+<link rel="stylesheet" href="./public/css/style.css">
+<!-- <script src="//code.jquery.com/jquery-1.11.0.min.js"></script> -->
+<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.6.0/underscore-min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/d3/3.4.6/d3.min.js"></script>
+<script src="./public/viz.conf.js"></script>
+</head>
+<body>
+<h1> 政治獻金視覺化 <a id="github" href="https://github.com/ronnywang/GovCash">GitHub</a></h1>
+<div class="sidebar">
+  <ul id="politicians">
+  </ul>  
+</div>
+<div id="content">
+  <h2>選取的目標</h2>
+  <div id="viz"></div>
+  <div id="summary">
+    <div id="income">
+      <h3>收入統計</h3>
+      <ul></ul>
+    </div> 
+    <div id="expense">
+      <h3>支出統計</h3>
+      <ul></ul>
+    </div> 
+  </div>
+</div>
+<div id="footer"><a href="#">錯誤資料<span></span></a><ul></ul></div>
+<script>  
+  $(document).ready(function() {
+    var arr = [];
+    // create a select list
+    $.each(politicians, function(){
+      var name =  this.replace(/(.*)參選人(.{3})政治獻金專戶.csv/g,'$2');
+      $('#politicians').append('<li><a href="#" value="'+this+'">'+ name +'</a></li>');
+    });
+
+    // get data and draw on click event
+    $('#politicians a').click(function() {      
+      var URL = $(this).attr('value');
+      $('h2').html(URL.replace('.csv','') + '<a href="'+baseURI+URL+'">下載CSV檔案</a>')
+      $('#politicians a').removeClass('selected');
+      $(this).addClass('selected');      
+      getData(URL);
+    });
+
+    
+    //init the first politician
+    $('#politicians a').first().click();
+
+    $(document).on('mouseenter ', '#summary li', function() {
+      var money = $(this).text().replace(/\$([\d]*)元(.*)/g, '$1');
+      var moneyType = $(this).parents('div').attr('id')=='income'?4:5;
+      
+      d3.select('svg').selectAll('circle').filter(function(d,i){
+        return d&&d[moneyType] == money;
+      }).attr({'opacity':1, 'fill':highlightColor});
+      //.datum(function(d){console.log(d)})
+    }).on('mouseleave', '#summary li', function() {
+      var money = $(this).text().replace(/\$([\d]*)元(.*)/g, '$1');
+      var moneyType = $(this).parents('div').attr('id')=='income'?4:5;
+      
+      d3.select('svg').selectAll('circle').filter(function(d,i){
+        return d&&d[moneyType] == money;
+      }).attr({'opacity':opacity, 'fill':moneyType==4?incomeColor:expenseColor});
+    });
+  
+    // get csv daw data
+    function getData(URL){
+      // console.time('Prcess raw');
+      
+      $.get(baseURI+URL, function(res){
+        var raw = res.split('\n');
+        var nowYear = new Date().getFullYear()
+        raw.shift(); // shift the first one data (the columns);
+        
+        // empty previous generated data
+        arr = []; errReport = [];
+        d3.select('svg').remove();
+        $('.tooltip').remove();
+        // console.log('raw data=' + raw.length)
+        // compose the data
+        _.each(raw , function(v){
+          if(v=='') {return 1;}
+          var d = v.replace(/"/g,'').split(',');
+          var year = parseInt(d[0].substr(0,4));
+          // check if income/expense correct
+          if(d[4]!=''&&d[5]!='') {
+            errReport.push({'reason':'收入支出皆有值', 'data': v});
+          } else if(d[4]==''&&d[5]=='') {
+            errReport.push({'reason':'收入支出皆空', 'data': v});
+          } else if(year <2000 || year > nowYear) {
+           errReport.push({'reason':'日期年份不正確', 'data': v});
+          } else if(d[4]=='0' || d[5]=='0') {
+            errReport.push({'reason':'金額為0', 'data': v});
+          } else {
+              arr.push(d);
+          }
+        });
+        // console.log('Data loaded = '+arr.length)
+        // console.timeEnd('Prcess raw');
+
+        // darw scatter plot
+        arr = _.sortBy(arr,'0');
+        draw(arr);
+        
+        // summary list
+        summary(arr);
+
+        // dump error data
+        if(window.location.href.indexOf('debug')!=-1) { 
+          var dump = 'Eror data in total: '+ errReport.length + ' on '+ URL +' \n';
+          _.each(errReport, function(d){
+            dump+= d.reason+': ' +d.data +'\n';
+          })
+          console.log(dump);
+        }
+      });
+    }
+
+  function summary(data){
+    // console.time('summary');
+    var income = _.chain(data).countBy('4').pairs().sortBy(sortta);
+    var expense = _.chain(data).countBy('5').pairs().sortBy(sortta);
+    // console.timeEnd('summary');
+    // console.log(income._wrapped);
+    
+    $('#income ul').empty().append(toHTML(income._wrapped));
+    $('#expense ul').empty().append(toHTML(expense._wrapped));
+  }
+  
+
+  var expenseColor='#990033', incomeColor='#009933', highlightColor='#00aaff', opacity=0.2;
+  var ylabels = {'1000':'1000','10000':'1萬','100000':'10萬','1000000':'100萬','10000000':'1000萬'}
+
+  function draw(data) {
+
+    var w = 800, h= 350, padding = {top:20, right:20, bottom:40, left:50}, ratio=3, scaleType='log';
+    var money = d3.format(',');
+    var xScale = d3.time.scale()
+                 .domain([ extractDate(data[0][0]), extractDate(data[data.length-1][0]) ])
+                 .range([padding.left+ratio, w-padding.right-ratio]),
+        yScale = d3.scale.log()
+                .domain([
+                  d3.min(data, function(d){return parseInt(d[4]||d[5]);}), 
+                  d3.max(data, function(d){return parseInt(d[4]||d[5]);})])
+                .range([h-padding.bottom-ratio, padding.top+ratio]);
+
+    // tooltip
+    var tooltip = d3.select("body")
+            .append("div")
+            .attr('class','tooltip')
+            .text("The tooltip");
+
+    /*var zoomListener  = d3.behavior.zoom().x(xScale).y(yScale).scaleExtent([1, 5]).on("zoom", zoom);*/
+    var svg = d3.select('#viz').append('svg').attr({'width':w, 'height': h, "viewBox": "0 0 " +w + " "+ h })/*.call(zoomListener)*/
+      .append("g").attr({'width':w,'height':h});
+    
+    // draw all scatters 
+    var circle = svg.selectAll('circle').data(data).enter().append('circle').attr({
+      'cx': toX,
+      'cy': toY,
+      'fill': fillColor,
+      'opacity':opacity,
+      'r' : ratio})
+    .on("mouseover", function(d){
+      var cor = d3.mouse(this);
+      var ex = cor[0];
+      var ey = cor[1];
+      d3.select('line.follow.x').attr({'y1':ey, 'x2':ex, 'y2':ey,'stroke-width':'1'});
+      d3.select('line.follow.y').attr({'x1':ex, 'x2':ex, 'y2':ey, 'stroke-width':'1'});
+
+      d3.select(this).attr({'opacity': '1', 'cursor':'pointer', 'fill': highlightColor});
+      return tooltip.style("visibility", "visible").html(
+      function(){
+        var name = d[2], siblings=[], str=' '+ d[0].replace('00:00:00','') +'<br>';
+        siblings = _.filter(data, function(_d){ return _d[0]==d[0] && _d[2]!=name && (_d[4]==d[4]&&_d[5]==d[5]); });
+        str += displayName(d);
+        $.each(siblings, function(){
+          str+= displayName(this);
+        });
+        return str;
+      });
+    })
+    .on("mousemove", function(d){
+      return tooltip.style("top", (d3.event.pageY-43)+"px").style("left",(d3.event.pageX+10)+"px");
+    }).on("mouseout", function(d){
+      d3.selectAll('line.follow').attr({'stroke-width':'0'});
+      d3.select(this).attr({'opacity': opacity, 'cursor':'default', 'fill': fillColor});
+      return tooltip.style("visibility", "hidden");
+    });
+
+    var followX = d3.select('svg').append('line').attr({
+      'x1':padding.left,
+      'y1':h-padding.top,
+      'class':'follow x',
+      'stroke-width':'0'
+    })
+    var followY = d3.select('svg').append('line').attr({
+      'x1':padding.left,
+      'y1':h-padding.bottom,
+      'class':'follow y',
+      'stroke-width':'0'
+    })
+  
+    // set axis labels
+    
+    var xAxis = d3.svg.axis().scale(xScale).orient('bottom').ticks(6).tickFormat(d3.time.format('%Y-%m-%d'));
+    var yAxis = d3.svg.axis().scale(yScale).orient('left').ticks(6,'s').tickFormat(function(n){ 
+      return ylabels[n]||'';
+    ;});
+
+    d3.select('svg').append('g').attr('class','x axis').attr('transform','translate(0,'+ (h-padding.bottom)+')')
+    .call(xAxis);
+    
+    d3.select('svg').append("g").attr("class", "y axis").attr("transform", "translate(" + (padding.left) + ",0)").call(yAxis);
+
+    function fillColor(d) {return d[4]!='' ? incomeColor:expenseColor;}
+    function toX(d) {
+      try{
+        return xScale(extractDate(d[0]));
+      }
+      catch(err) {
+        console.log(err, d[0])
+      }
+    }
+    function toY(d) {
+      
+      return yScale(d[4]||d[5]||1);}
+    function displayName(d) {
+      var name = d[2];
+      if(name.length<=3 && $.inArray(name, nameExceptions)==-1) {
+          name = name.replace(name.charAt(1), 'Ｏ');
+        } else if(name.length==4 ) {
+          try{
+            name = name.replace(name.charAt(2), 'Ｏ');
+          }
+          catch(err) {
+            console.log(err, name, name.charAt(2))
+          }
+        }
+        return '<span class="'+ (d[4]==''?'expense">支出':'income">收入')+'</span>: $'+ money(d[4]||d[5])+'元 - '+ name +'<br>';
+    }
+  }// end of draw
+
+    // function for handling zoom event
+    function zoom() {
+      // circle.attr("transform", transform);
+      d3.select('svg').attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale +")");
+      d3.select('g.x.axis').call(xAxis);
+      d3.select('g.y.axis').call(yAxis);
+    }
+
+    function transform(d) {
+      // console.log(toX(d), toY(d))
+      return "translate(" + toX(d) + ", " + toY(d) + ")";
+    }
+    function sortta(v){if(v[0]!='') {return -v[1];}}
+    function toHTML(arr) {
+      var str = '';
+      _.each(arr, function(v){
+        if(v[0]=='') return ;
+        str+= '<li>$'+ v[0] +'元: 共'+ v[1]+'筆</li>';
+      });
+      str+=''
+      return str;
+    }
+    function extractDate(str) {
+      return new Date(str.substr(0,10));
+    }
+  });// end of onload
+</script>
+
+</body>
+</html>

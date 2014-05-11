@@ -1,0 +1,123 @@
+body {margin:0;padding:0;font:14px/16px arial,sans-serif, '微軟正黑體'; color:#222;}
+h1 {
+	margin:0;
+	padding:.5em 0 .5em .2em;
+	font-size:2em;
+	color:#fff;
+	background:#15C5D5;
+	background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAANUlEQVQIW2OMfPf/PwMI/GNgWP7pOQMjTGD5h+cMkQKSQIE3//+DZEAcEGBkuPfsP4wDEgAAkWEWl09LumUAAAAASUVORK5CYII=);
+	background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAKklEQVQIW2NkuH7vPwMUNMkoMjDCBECcuif3IQIwDkghY9Pn//9BMjAAALUjFJRacInfAAAAAElFTkSuQmCC);
+	background-repeat:repeat;
+}
+a#github:link, a#github:visited {
+	color:#099;
+	font-wieght:normal;
+	font-size:.5em;
+}
+a#github:hover {background:none; text-decoration: underline;} 
+h2 {
+	margin:0.2em 0;
+	padding:10px 0px;
+	font-size:1.5em;
+	color:#a8a8a8;
+	text-align:center;
+	width:800px;
+}
+ul {margin:0;padding:0;}
+a:link,a:visited {color:#15C5D5;text-decoration: none;}
+a:hover, a.selected {
+	background:#E5FFFB;
+}
+a.selected {font-weight:bold;}
+h2 a {
+	margin-left:.5em;
+	font-size:.6em;
+}
+.sidebar {
+	padding:1em 0 0;
+	width:13em;
+	float:left;
+}
+#content {
+	margin-left:14em;
+}
+#content:after {
+	clear:both;
+}
+#footer {
+	clear:both;
+	width: 60%;
+	margin: 1em auto;
+	padding:1.2em;
+	background:#f3f3f3;
+	font:1.1em/1.5em  monospace;
+	display:none;
+}
+#footer ul {
+	display:none; 
+}
+#footer li span {color:#666;}
+#politicians li{
+ 	list-style: none;
+ 	font-size:1.4em;
+ 	line-height:1.6em;
+ }
+#politicians a {
+	
+	display:block;
+	padding-left:3em;
+} 
+
+.axis line, .axis path {
+    fill:none;
+    stroke: #aaa;
+    shape-rendering: crispEdges;
+}
+.x text {
+    font-size:11px;
+    font-family: sans-serif;
+    fill: #999;
+}
+.tooltip {
+	padding:10px;
+	background:#222;
+	color:#fff;
+	visibility: hidden;
+	opacity: .75;
+	z-index: 10;
+	position: absolute;
+}
+.tooltip .expense{color:#ff6633;}
+.tooltip .income {color:#66ff33;}
+.overlay {
+  fill: none;
+  pointer-events: all;
+}
+#summary {
+	padding-left:1em;
+	font:1.2em/1.8em  arial,sans-serif, '微軟正黑體';
+	color:#333;
+}
+#summary li {
+	margin:0;
+}
+#summary li:hover{
+	background:#f7f7f7;
+}
+#summary ul {
+	margin-left:1.2em;
+}
+
+#income, #expense {
+	width:30%;
+	float: left;
+}
+h3 {margin:0;padding:0.5em;}
+#income h3 {color:#009933;}
+#income {padding-left:4em;}
+#expense h3 {color:#990033;}
+
+svg line.follow {
+	stroke:#0066aa;
+	opacity:.3;
+}
