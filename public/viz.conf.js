@@ -2,7 +2,7 @@
 var columns = [ "交易日期", "收支科目", "捐贈者/支出對象", "身份證/統一編", "收入金額", "支出金額", "金錢類", "地址"];
 
 //可改為外部檔案的位址
-var baseURI = '../accounts/'; 
+var baseURI = './accounts/'; 
 // var baseURI = '//raw.githubusercontent.com/ronnywang/GovCash/master/accounts/'; 
 
 // 各個委員的檔案名稱
