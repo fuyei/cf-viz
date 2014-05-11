@@ -3,7 +3,7 @@ cf-viz
 
 **政治獻金視覺化 Project**
 
-用視覺化的方式來看資料。
+用視覺化的方式來看資料。目前包含的資料範圍是第八屆立法委員選舉，以及第一屆市長選舉。
 
 [展示網址: http://fuyei.github.io/cf-viz/viz.htm](http://fuyei.github.io/cf-viz/viz.htm)
 
