@@ -7,7 +7,7 @@ cf-viz
 
 [展示網址: http://fuyei.github.io/cf-viz/viz.htm](http://fuyei.github.io/cf-viz/viz.htm)
 
-[收集錯誤資料用](http://fuyei.github.io/cf-viz/viz.htm?debug)
+[收集錯誤資料用](http://fuyei.github.io/cf-viz/viz.htm?debug) (開Javascript console 的 debug log 可錯誤資料紀錄）
 
 
 **資料來源**
